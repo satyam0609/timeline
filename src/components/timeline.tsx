@@ -16,7 +16,7 @@ const ZoomableTimeline = () => {
   const timelineRef = useRef(null);
 
   // State to store randomly generated colored blocks
-  const [colorBlocks, setColorBlocks] = useState([]);
+  const [colorBlocks, setColorBlocks] = useState<any>([]);
 
   /** Layout and timeline configuration **/
   const height = 80;
@@ -131,7 +131,7 @@ const ZoomableTimeline = () => {
      *  - If zoomed to 1 day → show hourly ticks.
      *  - If zoomed to 1 hour → show minute ticks.
      */
-    const xAxis = (g, x) => {
+    const xAxis = (g: any, x: any) => {
       const domain = x.domain();
       const range = x.range();
       const spanMs = domain[1] - domain[0];
@@ -264,8 +264,11 @@ const ZoomableTimeline = () => {
         }
 
         tickValues = tickValues
-          .filter((d, i, arr) => i === 0 || Math.abs(d - arr[i - 1]) > 1000)
-          .sort((a, b) => a - b);
+          .filter(
+            (d: any, i: any, arr: any) =>
+              i === 0 || Math.abs(d - arr[i - 1]) > 1000
+          )
+          .sort((a: any, b: any) => a - b);
       }
 
       // Apply axis
@@ -274,7 +277,7 @@ const ZoomableTimeline = () => {
           .axisBottom(x)
           .tickValues(tickValues)
           .tickSizeOuter(0)
-          .tickFormat(format)
+          .tickFormat(format as any)
       )
         .selectAll("text")
         .attr("y", -10)
@@ -326,7 +329,7 @@ const ZoomableTimeline = () => {
      * Function that executes when user zooms
      * Updates the x-scale and redraws both axis and timeline blocks.
      */
-    function zoomed(event) {
+    function zoomed(event: any) {
       const xz = event.transform.rescaleX(x);
       gx.call(xAxis, xz);
       gx.select(".domain").remove();
@@ -344,10 +347,10 @@ const ZoomableTimeline = () => {
      * Initial zoom — set default view to 2x centered around mid-July 15.
      */
     svg
-      .call(zoom)
+      .call(zoom as any)
       .transition()
       .duration(750)
-      .call(zoom.scaleTo, 2, [x(new Date(2025, 6, 15)), 0]);
+      .call(zoom.scaleTo as any, 2, [x(new Date(2025, 6, 15)), 0]);
 
     /**
      * updateTimeline(scale)
@@ -358,13 +361,13 @@ const ZoomableTimeline = () => {
      * Example:
      *   If zoomed in, each block appears wider and fewer are visible.
      */
-    function updateTimeline(scale) {
+    function updateTimeline(scale: any) {
       if (!timelineRef.current) return;
 
       // Clear existing blocks
-      timelineRef.current.innerHTML = "";
+      (timelineRef.current as any).innerHTML = "";
 
-      colorBlocks.forEach((block) => {
+      colorBlocks.forEach((block: any) => {
         const startPos = scale(block.start);
         const endPos = scale(block.end);
 
@@ -382,7 +385,7 @@ const ZoomableTimeline = () => {
           div.style.backgroundColor = block.color;
           div.style.borderRight = "1px solid white";
           div.style.boxSizing = "border-box";
-          timelineRef.current.appendChild(div);
+          (timelineRef.current as any).appendChild(div);
         }
       });
     }

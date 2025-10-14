@@ -76,7 +76,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
   const timelineRef = useRef(null);
 
   // State to store randomly generated colored blocks
-  const [colorBlocks, setColorBlocks] = useState([]);
+  const [colorBlocks, setColorBlocks] = useState<any>([]);
 
   /** Layout and timeline configuration **/
   const height = 80;
@@ -170,7 +170,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
     setColorBlocks(generateColorBlocks());
   }, []);
 
-  const getInterval = (spanDays, pxPerMin) => {
+  const getInterval = (spanDays: any) => {
     // Use pixel density per minute or days to choose interval
 
     if (spanDays > 90) {
@@ -203,7 +203,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
    */
   useEffect(() => {
     if (!svgRef.current || colorBlocks.length === 0) return;
-    const fullSpanMs = endDate - startDate;
+    const fullSpanMs = endDate.getTime() - startDate.getTime();
     const fullWidthPx = width - marginLeft - marginRight;
     const basePxPerMs = fullWidthPx / fullSpanMs;
     console.log({ fullSpanMs, fullWidthPx, basePxPerMs });
@@ -273,7 +273,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
      *  - If zoomed to 1 day → show hourly ticks.
      *  - If zoomed to 1 hour → show minute ticks.
      */
-    const xAxis = (g, x) => {
+    const xAxis = (g: any, x: any) => {
       const domain = x.domain();
       const range = x.range();
       const spanMs = domain[1] - domain[0];
@@ -293,7 +293,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
        *  - If you're looking at 1-hour range → show minute ticks like "03:15PM"
        */
       const pxPerMin = pixelWidth / (spanMs / (1000 * 60));
-      const { interval, format } = getInterval(spanDays, pxPerMin);
+      const { interval, format } = getInterval(spanDays);
       const tickValues = x.ticks(interval);
 
       g.call(
@@ -301,7 +301,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
           .axisBottom(x)
           .tickValues(tickValues)
           .tickSizeOuter(0)
-          .tickFormat(format)
+          .tickFormat(format as any)
       )
         .selectAll("text")
         .attr("y", -10)
@@ -354,7 +354,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
      * Function that executes when user zooms
      * Updates the x-scale and redraws both axis and timeline blocks.
      */
-    function zoomed(event) {
+    function zoomed(event: any) {
       const xz = event.transform.rescaleX(x);
       gx.call(xAxis, xz);
       gx.select(".domain").remove();
@@ -397,12 +397,12 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
 
     // console.log({ desiredTicks, pxPerTick, zoomScale });
     svg
-      .call(zoom)
+      .call(zoom as any)
       .transition()
       .duration(750)
       .call(
-        zoom.scaleTo,
-        intervalScales.find((d) => d.key === "2h").zoomScale,
+        zoom.scaleTo as any,
+        (intervalScales.find((d) => d.key === "2h") as any).zoomScale,
         [x(new Date((startDate.getTime() + endDate.getTime()) / 2)), 0]
       );
 
@@ -415,13 +415,13 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
      * Example:
      *   If zoomed in, each block appears wider and fewer are visible.
      */
-    function updateTimeline(scale) {
+    function updateTimeline(scale: any) {
       if (!timelineRef.current) return;
 
       // Clear existing blocks
-      timelineRef.current.innerHTML = "";
+      (timelineRef.current as any).innerHTML = "";
 
-      colorBlocks.forEach((block) => {
+      colorBlocks.forEach((block: any) => {
         const startPos = scale(block.start);
         const endPos = scale(block.end);
 
@@ -439,7 +439,7 @@ const ZoomableTimeline1 = ({ initialInterval = 4 }) => {
           div.style.backgroundColor = block.color;
           div.style.borderRight = "1px solid white";
           div.style.boxSizing = "border-box";
-          timelineRef.current.appendChild(div);
+          (timelineRef.current as any).appendChild(div);
         }
       });
     }

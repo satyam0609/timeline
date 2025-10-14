@@ -1,29 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-
-const useResizeObserver = (ref: React.RefObject<HTMLElement>) => {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const observeTarget = ref.current;
-    const resizeObserver = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        setDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-      });
-    });
-
-    resizeObserver.observe(observeTarget);
-    return () => resizeObserver.unobserve(observeTarget);
-  }, [ref]);
-
-  return dimensions;
-};
+import { useResizeObserver } from "@/hooks/useResizeObserver";
 
 type IntervalConfig = {
   key: string;
@@ -393,7 +371,7 @@ const ZoomableTimeline = ({
       .call(zoom.scaleTo as any, initialZoomLevel, [x(centerDate), 0])
       .on("end", () => {
         // After zoom transform finishes and scale updates
-        const currentScale = d3.zoomTransform(svg.node()).rescaleX(x);
+        const currentScale = d3.zoomTransform(svg.node()!).rescaleX(x);
         xScaleRef.current = currentScale;
         updatePivotDateFromScale(pivotPositionRef.current);
       });

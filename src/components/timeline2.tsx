@@ -112,7 +112,7 @@ const ZoomableTimeline3 = ({
   const timelineRef = useRef(null);
   const containerRef = useRef(null);
   const { width } = useResizeObserver(containerRef);
-  const [colorBlocks, setColorBlocks] = useState([]);
+  const [colorBlocks, setColorBlocks] = useState<any>([]);
   const [zoomInfo, setZoomInfo] = useState({
     current: "",
     currentPxPerMin: 0,
@@ -153,7 +153,7 @@ const ZoomableTimeline3 = ({
     const current = new Date(startDate);
 
     while (current < endDate) {
-      const duration = Math.random() * 3600000 * 4; // 0-4 hours
+      const duration = Math.random() * 3600000 * 4;
       const blockEnd = new Date(
         Math.min(current.getTime() + duration, endDate.getTime())
       );
@@ -407,12 +407,12 @@ const ZoomableTimeline3 = ({
       .duration(750)
       .call(zoom.scaleTo as any, initialZoomLevel, [x(centerDate), 0]);
 
-    function updateTimeline(scale: number) {
+    function updateTimeline(scale: any) {
       if (!timelineRef.current) return;
 
-      timelineRef.current.innerHTML = "";
+      (timelineRef.current as any).innerHTML = "";
 
-      colorBlocks.forEach((block) => {
+      colorBlocks.forEach((block: any) => {
         const startPos = scale(block.start);
         const endPos = scale(block.end);
 
@@ -428,7 +428,7 @@ const ZoomableTimeline3 = ({
           div.style.backgroundColor = block.color;
           div.style.borderRight = "1px solid white";
           div.style.boxSizing = "border-box";
-          timelineRef.current.appendChild(div);
+          (timelineRef.current as any).appendChild(div);
         }
       });
     }
