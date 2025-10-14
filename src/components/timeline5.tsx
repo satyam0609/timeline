@@ -94,11 +94,12 @@ interface ZoomableTimelineProps {
   timelineConfig?: timelineConfigProp;
 }
 
-const ZoomableTimeline5 = ({
-  timelineConfig = { initialInterval: 1, scrollTo: "start" },
+const ZoomableTimeline6 = ({
+  timelineConfig = { initialInterval: 7, scrollTo: "start" },
 }: ZoomableTimelineProps) => {
   let intervalVariant = "adjust";
   const svgRef = useRef<SVGSVGElement>(null);
+  const zoomRef = useRef<any>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width } = useResizeObserver(containerRef);
@@ -130,8 +131,14 @@ const ZoomableTimeline5 = ({
   const marginTop = 20;
   const marginLeft = 30;
   const timelineHeight = 28;
-  const startDate = new Date(Date.UTC(2025, 6, 1, 0, 0, 0));
-  const endDate = new Date(Date.UTC(2025, 6, 2, 0, 0, 0));
+  const startDate = new Date(2025, 6, 1, 0, 0, 0);
+  const endDate = new Date(2025, 6, 2, 0, 0, 0);
+
+  const [tickGap, setTickGap] = useState<number>(0); // gap between ticks in px
+  const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>({
+    start: startDate,
+    end: endDate,
+  });
 
   const generateColorBlocks = () => {
     const blocks = [];
@@ -195,7 +202,8 @@ const ZoomableTimeline5 = ({
     svg.selectAll("*").remove();
 
     const x = d3
-      .scaleUtc()
+      // .scaleUtc()
+      .scaleTime()
       .domain([startDate, endDate])
       .range([marginLeft, width - marginRight]);
 
@@ -261,6 +269,8 @@ const ZoomableTimeline5 = ({
       ])
       .on("zoom", zoomed);
 
+    zoomRef.current = zoom;
+
     const gx = svg
       .append("g")
       .attr("class", "axis")
@@ -277,6 +287,16 @@ const ZoomableTimeline5 = ({
 
       const currentZoom = event.transform.k;
       const currentPxPerMin = basePxPerMin * currentZoom;
+      // --- compute visible range ---
+      const [visibleStart, visibleEnd] = xz.domain();
+      setVisibleRange({ start: visibleStart, end: visibleEnd });
+
+      // --- compute gap between each tick label ---
+      const tickValues = xz.ticks(getInterval(currentPxPerMin).interval);
+      if (tickValues.length >= 2) {
+        const gapPx = Math.abs(xz(tickValues[1]) - xz(tickValues[0]));
+        setTickGap(gapPx);
+      }
 
       const currentInterval = getInterval(currentPxPerMin);
       const currentIdx = intervals.findIndex(
@@ -300,7 +320,7 @@ const ZoomableTimeline5 = ({
       }
 
       if (zoomOutInterval) {
-        const minPxPerInterval = 75;
+        const minPxPerInterval = 80;
         const neededPxPerMin = minPxPerInterval / zoomOutInterval.minutes;
         const neededZoom = neededPxPerMin / basePxPerMin;
         zoomOutText = `${zoomOutInterval.key} (at ~${neededZoom.toFixed(
@@ -349,6 +369,18 @@ const ZoomableTimeline5 = ({
     xScaleRef.current = x;
     const initialPivotX = (width - marginLeft - marginRight) / 2;
     setPivotPosition(initialPivotX);
+
+    svg.call(zoom as any); // attach zoom behavior
+
+    // Immediately set the initial zoom
+    // const initialTransform = d3.zoomIdentity
+    //   .translate((width - marginLeft - marginRight) / 2 - x(centerDate), 0) // center the pivot
+    //   .scale(initialZoomLevel);
+
+    // svg.call(zoom.transform as any, initialTransform);
+
+    //------------------zoom with animation-------------------------//
+
     svg
       .call(zoom as any)
       .transition()
@@ -455,8 +487,42 @@ const ZoomableTimeline5 = ({
     return d3.timeFormat("%m/%d/%Y, %I:%M:%S %p")(date);
   };
 
+  const scrollTimeline = (direction: "left" | "right", px: number) => {
+    if (!svgRef.current || !zoomRef.current || !xScaleRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    const currentTransform = d3.zoomTransform(svg.node()!);
+
+    // Current visible domain
+    const xScale = xScaleRef.current;
+    const [visibleStart, visibleEnd] = xScale.domain();
+
+    const visibleWidthPx = width - marginLeft - marginRight;
+
+    // Calculate max/min translation
+    const fullSpanPx = visibleWidthPx * currentTransform.k; // total width in px after zoom
+    const minX = -(fullSpanPx - visibleWidthPx); // left-most translation
+    const maxX = 0; // right-most translation
+
+    // Determine new X
+    let newX =
+      direction === "left" ? currentTransform.x + px : currentTransform.x - px;
+
+    // Clamp
+    newX = Math.min(maxX, Math.max(minX, newX));
+
+    const newTransform = d3.zoomIdentity
+      .translate(newX, 0)
+      .scale(currentTransform.k);
+
+    svg
+      .transition()
+      .duration(300)
+      .call(zoomRef.current.transform, newTransform);
+  };
+
   return (
-    <div className="flex flex-col items-center bg-gray-50 overflow-x-hidden  p-4">
+    <div className="flex flex-col items-center bg-gray-50 overflow-x-hidden min-h-screen p-4">
       <div className="mb-4 p-4 bg-gray-100 rounded-lg shadow-sm text-sm font-mono w-full">
         <div className="grid grid-cols-3 gap-4">
           <div>
@@ -480,127 +546,151 @@ const ZoomableTimeline5 = ({
           <div className="text-purple-600 font-semibold">
             Pivot Position: {precisePivotRef.current.toFixed(4)}px
           </div>
+          <div className="text-purple-600 font-semibold">Gap: {tickGap}px</div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-gray-300">
+          <div className="text-purple-600 font-semibold">
+            Start: {d3.timeFormat("%m/%d/%Y, %I:%M:%S %p")(visibleRange.start)}
+          </div>
+          <div className="text-purple-600 font-semibold">
+            End: {d3.timeFormat("%m/%d/%Y, %I:%M:%S %p")(visibleRange.end)}
+          </div>
         </div>
       </div>
 
-      <div
-        className="bg-white rounded-lg shadow-lg w-full  relative"
-        ref={containerRef}
-        // onMouseMove={handleMouseMove}
-        // onMouseUp={handleMouseUp}
-        // onMouseLeave={handleMouseUp}
-        onMouseMove={(e) => handlePivotMove(e.clientX)}
-        onTouchMove={(e) => handlePivotMove(e.touches[0].clientX)}
-        style={{ cursor: isDragging ? "grabbing" : "default" }}
-      >
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${width} ${height}`}
-          width={width}
-          height={height}
-          style={{
-            maxWidth: "100%",
-            height: "auto",
-            display: "block",
-          }}
-        />
-
-        <div
-          className="absolute top-12 bg-amber-200 h-4"
-          style={{
-            width: `${width - marginLeft - marginRight}px`,
-            height: `${timelineHeight}px`,
-            marginLeft: `${marginLeft}px`,
-            marginTop: "10px",
-            border: "1px solid #ccc",
-            overflow: "hidden",
-            pointerEvents: "none",
-          }}
-          ref={timelineRef}
-        />
-
-        <div
-          className="absolute top-32 bg-amber-200 h-4"
-          style={{
-            width: `${width - marginLeft - marginRight}px`,
-            height: `${timelineHeight}px`,
-            marginLeft: `${marginLeft}px`,
-            marginTop: "10px",
-            border: "1px solid #ccc",
-            overflow: "hidden",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          className="absolute"
-          style={{
-            left: `${marginLeft + pivotPosition}px`,
-            top: "0",
-            bottom: "0",
-            width: "1px",
-            backgroundColor: "#2563eb",
-            pointerEvents: "none",
-            zIndex: 10,
-          }}
+      <div className="relative w-full flex items-center px-10">
+        <button
+          className="h-10 w-10 rounded-full bg-white hover:bg-neutral-400 absolute top-12 left-5 z-[99999]"
+          onClick={() => scrollTimeline("left", 100)}
         >
-          <div
-            className="absolute top-0 bottom-0 w-full"
+          ◀
+        </button>
+        <div
+          className="bg-white w-full relative"
+          ref={containerRef}
+          // onMouseMove={handleMouseMove}
+          // onMouseUp={handleMouseUp}
+          // onMouseLeave={handleMouseUp}
+          onMouseMove={(e) => handlePivotMove(e.clientX)}
+          onTouchMove={(e) => handlePivotMove(e.touches[0].clientX)}
+          onMouseLeave={(e) => handlePivotEnd()}
+          style={{ cursor: isDragging ? "grabbing" : "default" }}
+        >
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${width} ${height}`}
+            width={width}
+            height={height}
             style={{
-              background:
-                "linear-gradient(to bottom, #2563eb 0%, #2563eb 100%)",
+              maxWidth: "100%",
+              height: "auto",
+              display: "block",
+            }}
+          />
+
+          <div
+            className="absolute top-12 bg-amber-200 h-4"
+            style={{
+              width: `${width - marginLeft - marginRight}px`,
+              height: `${timelineHeight}px`,
+              marginLeft: `${marginLeft}px`,
+              marginTop: "10px",
+              border: "1px solid #ccc",
+              overflow: "hidden",
+              pointerEvents: "none",
+            }}
+            ref={timelineRef}
+          />
+
+          <div
+            className="absolute top-32 bg-amber-200 h-4"
+            style={{
+              width: `${width - marginLeft - marginRight}px`,
+              height: `${timelineHeight}px`,
+              marginLeft: `${marginLeft}px`,
+              marginTop: "10px",
+              border: "1px solid #ccc",
+              overflow: "hidden",
+              pointerEvents: "none",
             }}
           />
 
           <div
             className="absolute"
             style={{
-              top: "-1px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "0",
-              height: "0",
-              borderLeft: "6px solid transparent",
-              borderRight: "6px solid transparent",
-              borderTop: "8px solid #2563eb",
+              left: `${marginLeft + pivotPosition}px`,
+              top: "0",
+              bottom: "0",
+              width: "1px",
+              backgroundColor: "#2563eb",
+              pointerEvents: "none",
+              zIndex: 10,
             }}
-          />
+          >
+            <div
+              className="absolute top-0 bottom-0 w-full"
+              style={{
+                background:
+                  "linear-gradient(to bottom, #2563eb 0%, #2563eb 100%)",
+              }}
+            />
+
+            <div
+              className="absolute"
+              style={{
+                top: "-1px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "0",
+                height: "0",
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderTop: "8px solid #2563eb",
+              }}
+            />
+
+            <div
+              className="absolute"
+              style={{
+                bottom: "-1px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "0",
+                height: "0",
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderBottom: "8px solid #2563eb",
+              }}
+            />
+          </div>
 
           <div
-            className="absolute"
+            className="absolute bg-white border-2 border-blue-600 rounded-lg shadow-lg px-3 py-2"
             style={{
-              bottom: "-1px",
-              left: "50%",
+              left: `${marginLeft + pivotPosition}px`,
+              top: "-45px",
               transform: "translateX(-50%)",
-              width: "0",
-              height: "0",
-              borderLeft: "6px solid transparent",
-              borderRight: "6px solid transparent",
-              borderBottom: "8px solid #2563eb",
+              pointerEvents: "auto",
+              zIndex: 20,
+              userSelect: "none",
+              cursor: isDragging ? "grabbing" : "grab",
             }}
-          />
-        </div>
-
-        <div
-          className="absolute bg-white border-2 border-blue-600 rounded-lg shadow-lg px-3 py-2"
-          style={{
-            left: `${marginLeft + pivotPosition}px`,
-            top: "-45px",
-            transform: "translateX(-50%)",
-            pointerEvents: "auto",
-            zIndex: 20,
-            userSelect: "none",
-            cursor: isDragging ? "grabbing" : "grab",
-          }}
-          // onMouseDown={handlePivotMouseDown}
-          onMouseDown={(e) => handlePivotStart(e.clientX)}
-          onTouchStart={(e) => handlePivotStart(e.touches[0].clientX)}
-        >
-          <div className="text-xs font-semibold text-gray-700 whitespace-nowrap flex items-center gap-1">
-            <span>{formatPivotDate(pivotDate)}</span>
-            <span className="text-blue-600">⟷</span>
+            // onMouseDown={handlePivotMouseDown}
+            onMouseDown={(e) => handlePivotStart(e.clientX)}
+            onTouchStart={(e) => handlePivotStart(e.touches[0].clientX)}
+          >
+            <div className="text-xs font-semibold text-gray-700 whitespace-nowrap flex items-center gap-1">
+              <span>{formatPivotDate(pivotDate)}</span>
+              <span className="text-blue-600">⟷</span>
+            </div>
           </div>
         </div>
+        <button
+          className="h-10 w-10 rounded-full bg-white hover:bg-neutral-400 absolute top-12 right-5"
+          onClick={() => scrollTimeline("right", 100)}
+        >
+          ▶
+        </button>
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
@@ -611,4 +701,4 @@ const ZoomableTimeline5 = ({
   );
 };
 
-export default ZoomableTimeline5;
+export default ZoomableTimeline6;

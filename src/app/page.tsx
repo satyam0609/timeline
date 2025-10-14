@@ -1,4 +1,5 @@
 import ZoomableTimeline5 from "@/components/timeline4";
+import ZoomableTimeline6 from "@/components/timeline5";
 
 export default function Home() {
   return (
@@ -12,6 +13,9 @@ export default function Home() {
       </div> */}
       <div>
         <ZoomableTimeline5 />
+      </div>
+      <div>
+        <ZoomableTimeline6 />
       </div>
     </div>
   );
