@@ -95,7 +95,7 @@ interface ZoomableTimelineProps {
 }
 
 const ZoomableTimeline5 = ({
-  timelineConfig = { initialInterval: 8, scrollTo: "start" },
+  timelineConfig = { initialInterval: 1, scrollTo: "start" },
 }: ZoomableTimelineProps) => {
   let intervalVariant = "adjust";
   const svgRef = useRef<SVGSVGElement>(null);
@@ -435,7 +435,7 @@ const ZoomableTimeline5 = ({
 
   return (
     <div className="flex flex-col items-center bg-gray-50 overflow-x-hidden min-h-screen p-4">
-      <div className="mb-4 p-4 bg-gray-100 rounded-lg shadow-sm text-sm font-mono w-full max-w-6xl">
+      <div className="mb-4 p-4 bg-gray-100 rounded-lg shadow-sm text-sm font-mono w-full">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <div className="text-blue-600 font-bold text-lg mb-1">
@@ -462,7 +462,7 @@ const ZoomableTimeline5 = ({
       </div>
 
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-6xl relative"
+        className="bg-white rounded-lg shadow-lg w-full  relative"
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
