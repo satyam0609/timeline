@@ -403,29 +403,51 @@ const ZoomableTimeline5 = ({
     }
   }
 
-  const handlePivotMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
+  // const handlePivotMouseDown = (e: React.MouseEvent) => {
+  //   e.preventDefault();
+  //   setIsDragging(true);
+  //   setDragStartX(e.clientX);
+  //   setDragStartPivot(precisePivotRef.current);
+  // };
+
+  // const handleMouseMove = (e: React.MouseEvent) => {
+  //   if (!isDragging || !containerRef.current) return;
+
+  //   const deltaX = e.clientX - dragStartX;
+  //   const maxX = width - marginLeft - marginRight;
+
+  //   const newPosition = Math.max(0, Math.min(dragStartPivot + deltaX, maxX));
+
+  //   console.log(newPosition, "-----new position (with sub-pixel precision)");
+
+  //   setPivotPosition(newPosition);
+  //   precisePivotRef.current = newPosition;
+  //   updatePivotDateFromScale(newPosition);
+  // };
+
+  // const handleMouseUp = () => {
+  //   setIsDragging(false);
+  // };
+
+  const handlePivotStart = (clientX: number) => {
     setIsDragging(true);
-    setDragStartX(e.clientX);
+    setDragStartX(clientX);
     setDragStartPivot(precisePivotRef.current);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePivotMove = (clientX: number) => {
     if (!isDragging || !containerRef.current) return;
 
-    const deltaX = e.clientX - dragStartX;
+    const deltaX = clientX - dragStartX;
     const maxX = width - marginLeft - marginRight;
-
     const newPosition = Math.max(0, Math.min(dragStartPivot + deltaX, maxX));
-
-    console.log(newPosition, "-----new position (with sub-pixel precision)");
 
     setPivotPosition(newPosition);
     precisePivotRef.current = newPosition;
     updatePivotDateFromScale(newPosition);
   };
 
-  const handleMouseUp = () => {
+  const handlePivotEnd = () => {
     setIsDragging(false);
   };
 
@@ -464,9 +486,11 @@ const ZoomableTimeline5 = ({
       <div
         className="bg-white rounded-lg shadow-lg w-full  relative"
         ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        // onMouseMove={handleMouseMove}
+        // onMouseUp={handleMouseUp}
+        // onMouseLeave={handleMouseUp}
+        onMouseMove={(e) => handlePivotMove(e.clientX)}
+        onTouchMove={(e) => handlePivotMove(e.touches[0].clientX)}
         style={{ cursor: isDragging ? "grabbing" : "default" }}
       >
         <svg
@@ -568,7 +592,9 @@ const ZoomableTimeline5 = ({
             userSelect: "none",
             cursor: isDragging ? "grabbing" : "grab",
           }}
-          onMouseDown={handlePivotMouseDown}
+          // onMouseDown={handlePivotMouseDown}
+          onMouseDown={(e) => handlePivotStart(e.clientX)}
+          onTouchStart={(e) => handlePivotStart(e.touches[0].clientX)}
         >
           <div className="text-xs font-semibold text-gray-700 whitespace-nowrap flex items-center gap-1">
             <span>{formatPivotDate(pivotDate)}</span>
