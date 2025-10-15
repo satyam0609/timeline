@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { useResizeObserver } from "@/hooks/useResizeObserver";
+import { useReactNativeBridge } from "@/hooks/useReactNativeBridge";
 
 type IntervalConfig = {
   key: string;
@@ -131,8 +132,7 @@ const ZoomableTimeline6 = ({
   const marginTop = 20;
   const marginLeft = 30;
   const timelineHeight = 28;
-  const startDate = new Date(2025, 6, 1, 0, 0, 0);
-  const endDate = new Date(2025, 6, 2, 0, 0, 0);
+  const { startDate, endDate } = useReactNativeBridge();
 
   const [tickGap, setTickGap] = useState<number>(0); // gap between ticks in px
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>({
