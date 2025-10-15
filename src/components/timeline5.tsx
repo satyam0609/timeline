@@ -488,37 +488,29 @@ const ZoomableTimeline6 = ({
   };
 
   const scrollTimeline = (direction: "left" | "right", px: number) => {
-    if (!svgRef.current || !zoomRef.current || !xScaleRef.current) return;
+    // Safety: we need the svg element, the current zoom behavior, and the zoom transform to exist.
+    if (!svgRef.current || !zoomRef.current) return;
 
+    // Use d3 to select the svg node (we will call the zoom's translateBy via d3.call)
     const svg = d3.select(svgRef.current);
-    const currentTransform = d3.zoomTransform(svg.node()!);
 
-    // Current visible domain
-    const xScale = xScaleRef.current;
-    const [visibleStart, visibleEnd] = xScale.domain();
+    // dx is positive to move content right (visible window shifts left),
+    // and negative to move content left (visible window shifts right).
+    // When user clicks "left" arrow we want to move the visible window earlier in time,
+    // so we translate by (+px). For "right" arrow we translate by (-px).
+    const dx = direction === "left" ? px : -px;
 
-    const visibleWidthPx = width - marginLeft - marginRight;
-
-    // Calculate max/min translation
-    const fullSpanPx = visibleWidthPx * currentTransform.k; // total width in px after zoom
-    const minX = -(fullSpanPx - visibleWidthPx); // left-most translation
-    const maxX = 0; // right-most translation
-
-    // Determine new X
-    let newX =
-      direction === "left" ? currentTransform.x + px : currentTransform.x - px;
-
-    // Clamp
-    newX = Math.min(maxX, Math.max(minX, newX));
-
-    const newTransform = d3.zoomIdentity
-      .translate(newX, 0)
-      .scale(currentTransform.k);
-
+    // Use the built-in translateBy operation on the zoom behavior.
+    // This will:
+    //  - compute a new transform (current transform + dx)
+    //  - apply scale (no change in k)
+    //  - respect translateExtent and scaleExtent automatically
+    //  - update internal zoom state so subsequent zoom events remain consistent
     svg
-      .transition()
+      .transition() // animate the pan so it feels smooth
       .duration(300)
-      .call(zoomRef.current.transform, newTransform);
+      // call the zoom behavior's translateBy (note: zoomRef.current is the zoom behavior)
+      .call((zoomRef.current as any).translateBy as any, dx, 0);
   };
 
   return (
