@@ -132,7 +132,10 @@ const ZoomableTimeline6 = ({
   const marginTop = 20;
   const marginLeft = 30;
   const timelineHeight = 28;
-  const { startDate, endDate } = useReactNativeBridge();
+  const { data, sendToReactNative } = useReactNativeBridge();
+  // const { startDate, endDate } = data;
+  const startDate = new Date("2025-09-01T23:00:00.000Z");
+  const endDate = new Date("2026-09-29T05:59:00.000Z");
 
   const [tickGap, setTickGap] = useState<number>(0); // gap between ticks in px
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>({
@@ -175,6 +178,11 @@ const ZoomableTimeline6 = ({
   useEffect(() => {
     setColorBlocks(generateColorBlocks());
   }, []);
+
+  useEffect(() => {
+    sendToReactNative("tickGap", tickGap);
+    sendToReactNative("visibleRange", visibleRange);
+  }, [tickGap, visibleRange]);
 
   const getInterval = (pxPerMin: number): IntervalConfig => {
     if (pxPerMin > 10) return intervals.find((d) => d.key === "5m")!;
